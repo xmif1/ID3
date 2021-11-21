@@ -24,10 +24,14 @@ def entropy(dataset, target):
 
 
 def information_gain(dataset, dataset_entropy, target, attribute):
-    subsets = [dataset.loc[dataset[attribute] == v] for v in dataset[attribute].unique()]
-    conditional_entropy = np.divide([s.shape[0] * entropy(s, target) for s in subsets], dataset[target].shape[0])
+    conditional_entropy = 0
+    for value in dataset[attribute].unique():
+        subset = dataset.loc[dataset[attribute] == value]
+        conditional_entropy = conditional_entropy + (subset.shape[0] * entropy(subset, target))
 
-    return dataset_entropy - np.sum(conditional_entropy)
+    conditional_entropy = conditional_entropy / dataset[target].shape[0]
+
+    return dataset_entropy - conditional_entropy
 
 
 def best_attribute(dataset, target):
