@@ -20,6 +20,7 @@ def load_dataset(data_file, header_file, target, missing, train_frac=0.7):
             if non_missing.shape[0] < n_test_samples:
                 raise ValueError("Not enough samples without missing data to generate training set of specified size.")
             else:
+                # remove random_state once debugging is over
                 test = non_missing.sample(frac=(n_test_samples / non_missing.shape[0]), random_state=0)
                 train = dataset.drop(test.index)
                 train = train.loc[train[target] != missing]
@@ -66,12 +67,12 @@ def information_gain(dataset, dataset_entropy, target, attribute):
     return dataset_entropy - conditional_entropy
 
 
-def best_attribute(dataset, target):
+def best_attribute(dataset, attributes_dict, target):
     dataset_entropy = entropy(dataset, target)
     max_information_gain = 0
     max_ig_attr = None
 
-    for attr in dataset.columns:
+    for attr in attributes_dict:
         if attr != target:
             ig = information_gain(dataset, dataset_entropy, target, attr)
             if max_information_gain <= ig:

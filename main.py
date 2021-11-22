@@ -13,28 +13,15 @@ ap.add_argument("-m", "--missing", required=False, help="Missing attribute value
 args = vars(ap.parse_args())
 
 
-def test_decision_tree(decision_tree, test_dataset):
-    n_test_samples = test_dataset.shape[0]
-    n_positives = 0
-
-    for _, predict_attr_dict in test_dataset.iterrows():
-        target_value = predict_attr_dict[decision_tree.target]
-        predict_attr_dict.pop(decision_tree.target)
-
-        if decision_tree.predict(predict_attr_dict) == target_value:
-            n_positives = n_positives + 1
-
-    print("Testing set size = " + str(n_test_samples) + ", % correct predictions = " +
-          str((n_positives / n_test_samples) * 100))
-
-
 if __name__ == "__main__":
     try:
         train, test, attribute_dict = Utilities.load_dataset(args["data"], args["header"], args["target"],
                                                              args["missing"], train_frac=args["fraction_split"])
 
         decisionTree = DecisionTree(train, attribute_dict, args["target"], args["missing"])
-        test_decision_tree(decisionTree, test)
+        if test.shape[0] != 0:
+            print("Testing benchmark: " + str(decisionTree.benchmark(test)))
+        print("Training benchmark: " + str(decisionTree.benchmark(train)))
     except ValueError as ve:
         print(ve)
         print("Exiting...")

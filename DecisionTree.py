@@ -19,6 +19,7 @@ class DecisionTreeNode:
 
 class DecisionTree:
     def __init__(self, dataset, attributes_dict, target, missing):
+        self.dataset = dataset
         self.target = target
         self.missing = missing
         self.attributes_dict = attributes_dict
@@ -42,7 +43,7 @@ class DecisionTree:
             root.classification = most_common_val
             return root
 
-        root.split_attr = Utilities.best_attribute(dataset, target)
+        root.split_attr = Utilities.best_attribute(dataset, attributes_dict, target)
 
         most_common_split_val = None
         max_count = 0
@@ -55,7 +56,7 @@ class DecisionTree:
                 has_missing = True
 
         if has_missing:
-            dataset.loc[dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
+            self.dataset.loc[self.dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
 
         for value in attributes_dict[root.split_attr]:
             subset = dataset.loc[dataset[root.split_attr] == value]
@@ -79,6 +80,9 @@ class DecisionTree:
 
         return root
 
+    def prune(self):
+        return None
+
     def predict(self, predict_attr_dict):
         for pred_attr, value in predict_attr_dict.items():
             if pred_attr in self.attributes_dict:
@@ -95,3 +99,16 @@ class DecisionTree:
                     break
 
         return curr_node.classification
+
+    def benchmark(self, dataset):
+        n_test_samples = dataset.shape[0]
+        n_positives = 0
+
+        for _, predict_attr_dict in dataset.iterrows():
+            target_value = predict_attr_dict[self.target]
+            predict_attr_dict.pop(self.target)
+
+            if self.predict(predict_attr_dict) == target_value:
+                n_positives = n_positives + 1
+
+        return n_positives / n_test_samples
