@@ -18,8 +18,9 @@ class DecisionTreeNode:
 
 
 class DecisionTree:
-    def __init__(self, dataset, attributes_dict, target):
+    def __init__(self, dataset, attributes_dict, target, missing):
         self.target = target
+        self.missing = missing
         self.attributes_dict = attributes_dict
         self.root = self._id3(dataset, attributes_dict, target)
 
@@ -33,7 +34,7 @@ class DecisionTree:
                 max_count = count
                 most_common_val = value
 
-            if count == dataset[target].shape[0]:
+            if count == dataset.shape[0]:
                 root.classification = value
                 return root
 
@@ -42,6 +43,20 @@ class DecisionTree:
             return root
 
         root.split_attr = Utilities.best_attribute(dataset, target)
+
+        most_common_split_val = None
+        max_count = 0
+        has_missing = False
+        for value, count in dataset[root.split_attr].value_counts().items():
+            if value != self.missing and max_count <= count:
+                max_count = count
+                most_common_split_val = value
+            elif value == self.missing:
+                has_missing = True
+
+        if has_missing:
+            dataset.loc[dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
+
         for value in attributes_dict[root.split_attr]:
             subset = dataset.loc[dataset[root.split_attr] == value]
 
