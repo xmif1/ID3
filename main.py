@@ -1,13 +1,18 @@
 from DecisionTree import DecisionTreeNode
+import Utilities
 
 import pandas as pd
 import numpy as np
-
-import Utilities
+import argparse
 import copy
 
-data_file = ""
-header_file = ""
+ap = argparse.ArgumentParser()
+ap.add_argument("-D", "--data", required=True, help="File path to a .data file")
+ap.add_argument("-H", "--header", required=True, help="File path to a .header file, corresponding to the .data file")
+ap.add_argument("-t", "--target", required=True, help="Target attribute name appearing in the .header file")
+ap.add_argument("-f", "--fraction-split", required=True, type=float,
+                help="Fraction split into training (f) and test data (1-f)")
+args = vars(ap.parse_args())
 
 
 def id3(dataset, attributes_dict, target):
@@ -15,7 +20,7 @@ def id3(dataset, attributes_dict, target):
 
     most_common_val = None
     max_count = 0
-    for value, count in dataset[target].value_counts():
+    for value, count in dataset[target].value_counts().items():
         if max_count <= count:
             max_count = count
             most_common_val = value
@@ -53,4 +58,11 @@ def id3(dataset, attributes_dict, target):
 
 
 if __name__ == "__main__":
-    train, test = Utilities.load_dataset(data_file, header_file)
+    try:
+        train, test, attribute_dict = Utilities.load_dataset(args["data"], args["header"], args["target"],
+                                                             train_frac=args["fraction_split"])
+        id3(train, attribute_dict, args["target"])
+    except ValueError as ve:
+        print(ve)
+        print("Exiting...")
+        exit(1)

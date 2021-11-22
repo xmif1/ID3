@@ -2,22 +2,34 @@ import pandas as pd
 import numpy as np
 
 
-def load_dataset(data_file, header_file, train_frac=0.7):
+def load_dataset(data_file, header_file, target, train_frac=0.7):
     dataset = pd.read_csv(data_file)
 
     with open(header_file, "r") as header_file_stream:
-        dataset.columns = header_file_stream.readline().split(",")
+        dataset.columns = header_file_stream.readline().rstrip().split(",")
 
-    train = dataset.sample(frac=train_frac, random_state=0)  # remove random_state once debugging is over
-    test = dataset.drop(train.index)
+    if 0 < train_frac <= 1:
+        train = dataset.sample(frac=train_frac, random_state=0)  # remove random_state once debugging is over
+        test = dataset.drop(train.index)
+    else:
+        raise ValueError("Fraction split is not in the range 0 < f <= 1 as required.")
 
-    return train, test
+    attribute_dict = {}
+    target_found = False
+    for attribute in dataset.columns:
+        if attribute != target:
+            attribute_dict[attribute] = [v for v in dataset[attribute].unique()]
+        else:
+            target_found = True
+
+    if not target_found:
+        raise ValueError("Specified target attribute is not in the header file.")
+
+    return train, test, attribute_dict
 
 
 def entropy(dataset, target):
-    counts = dataset[target].value_counts()
-    counts = counts.to_numpy(dtype=np.int)
-
+    counts = [c for _, c in dataset[target].value_counts().items()]
     probabilities = np.divide(counts, dataset[target].shape[0])
 
     return -1 * np.sum([p * log2_p for p, log2_p in zip(probabilities, np.log2(probabilities))])
@@ -39,10 +51,11 @@ def best_attribute(dataset, target):
     max_information_gain = 0
     max_ig_attr = None
 
-    for attr in dataset.header:
-        ig = information_gain(dataset, dataset_entropy, target, attr)
-        if max_information_gain <= ig:
-            max_information_gain = ig
-            max_ig_attr = attr
+    for attr in dataset.columns:
+        if attr != target:
+            ig = information_gain(dataset, dataset_entropy, target, attr)
+            if max_information_gain <= ig:
+                max_information_gain = ig
+                max_ig_attr = attr
 
     return max_ig_attr
