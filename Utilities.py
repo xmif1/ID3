@@ -3,7 +3,7 @@ import numpy as np
 
 
 def load_dataset(data_file, header_file, target, train_frac=0.7):
-    dataset = pd.read_csv(data_file)
+    dataset = pd.read_csv(data_file, header=None)
 
     with open(header_file, "r") as header_file_stream:
         dataset.columns = header_file_stream.readline().rstrip().split(",")
