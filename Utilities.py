@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def load_dataset(data_file, header_file, target, missing, train_frac=0.7, continuous_file=None):
+def load_dataset(data_file, header_file, continuous_file, target, missing, train_frac):
     dataset = pd.read_csv(data_file, header=None)
 
     with open(header_file, "r") as header_file_stream:
@@ -27,8 +27,8 @@ def load_dataset(data_file, header_file, target, missing, train_frac=0.7, contin
             attr_dataset = attr_dataset.sort_values(by=[attr])
             attr_dataset = attr_dataset.to_numpy()
 
-            inflection_points = np.where(attr_dataset[1][:-1] != attr_dataset[1][1:])[0]
-            cutoff_values = [(attr_dataset[0][i] + attr_dataset[0][i+1]) / 2 for i in inflection_points]
+            inflection_points = np.where(attr_dataset[:, 1][:-1] != attr_dataset[:, 1][1:])[0]
+            cutoff_values = [(attr_dataset[:, 0][i] + attr_dataset[:, 0][i+1]) / 2 for i in inflection_points]
 
             dataset_entropy = entropy(dataset, target)
             max_information_gain = 0
@@ -37,13 +37,13 @@ def load_dataset(data_file, header_file, target, missing, train_frac=0.7, contin
 
             for c in cutoff_values:
                 thresholded_c_attr_vals = []
-                for value in dataset[attr].iterrows():
+                for value in dataset[attr]:
                     if (missing is not None) and float(missing) == value:
                         thresholded_c_attr_vals.append(missing)
                     elif value < c:
-                        thresholded_c_attr_vals.append("false")
-                    else:
                         thresholded_c_attr_vals.append("true")
+                    else:
+                        thresholded_c_attr_vals.append("false")
 
                 subset = dataset.copy()
                 subset[attr] = thresholded_c_attr_vals

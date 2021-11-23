@@ -17,8 +17,8 @@ args = vars(ap.parse_args())
 
 if __name__ == "__main__":
     try:
-        train, test, attributes_dict = Utilities.load_dataset(args["data"], args["header"], args["target"],
-                                                             args["missing"], train_frac=args["fraction_split"])
+        train, test, attributes_dict = Utilities.load_dataset(args["data"], args["header"], args["continuous"],
+                                                              args["target"], args["missing"], args["fraction_split"])
 
         decisionTree = DecisionTree(train, attributes_dict, args["target"], args["missing"])
 
