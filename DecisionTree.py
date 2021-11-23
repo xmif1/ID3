@@ -58,7 +58,7 @@ class DecisionTree:
         if has_missing:
             self.dataset.loc[self.dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
 
-        for value in attributes_dict[root.split_attr]:
+        for value in attributes_dict[root.split_attr][0]:
             subset = dataset.loc[dataset[root.split_attr] == value]
 
             if subset.shape[0] == 0:
@@ -80,13 +80,10 @@ class DecisionTree:
 
         return root
 
-    def prune(self):
-        return None
-
     def predict(self, predict_attr_dict):
         for pred_attr, value in predict_attr_dict.items():
             if pred_attr in self.attributes_dict:
-                if value not in self.attributes_dict[pred_attr]:
+                if value not in self.attributes_dict[pred_attr][0]:
                     raise ValueError("Value " + value + " is not a valid value for attribute " + pred_attr + ".")
             else:
                 raise ValueError("Attribute " + pred_attr + " is not in the dataset header.")
@@ -104,11 +101,14 @@ class DecisionTree:
         n_test_samples = dataset.shape[0]
         n_positives = 0
 
-        for _, predict_attr_dict in dataset.iterrows():
-            target_value = predict_attr_dict[self.target]
-            predict_attr_dict.pop(self.target)
+        if n_test_samples == 0:
+            return -1
+        else:
+            for _, predict_attr_dict in dataset.iterrows():
+                target_value = predict_attr_dict[self.target]
+                predict_attr_dict.pop(self.target)
 
-            if self.predict(predict_attr_dict) == target_value:
-                n_positives = n_positives + 1
+                if self.predict(predict_attr_dict) == target_value:
+                    n_positives = n_positives + 1
 
-        return n_positives / n_test_samples
+            return n_positives / n_test_samples
