@@ -21,9 +21,14 @@ if __name__ == "__main__":
                                                               args["target"], args["missing"], args["fraction_split"])
 
         decisionTree = DecisionTree(train, attributes_dict, args["target"], args["missing"])
+        train_non_missing = decisionTree.dataset.loc[decisionTree.dataset[args["target"]] != args["missing"]]
+
+        for attr in train_non_missing.columns:
+            if attr != args["target"]:
+                train_non_missing = train_non_missing.loc[train_non_missing[attr] != args["missing"]]
 
         print("Testing benchmark: " + str(decisionTree.benchmark(test)))
-        print("Training benchmark: " + str(decisionTree.benchmark(train)))
+        print("Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
     except ValueError as ve:
         print(ve)
         print("Exiting...")
