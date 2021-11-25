@@ -18,11 +18,12 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             if attr == target:
                 raise ValueError("Target attribute cannot be continuous.")
 
+            dataset.loc[dataset[attr] == missing, attr] = np.NaN
             dataset[attr] = dataset[attr].astype(float)
 
             attr_dataset = dataset[[attr, target]]
             if missing is not None:
-                attr_dataset = attr_dataset.loc[attr_dataset[attr] != missing]
+                attr_dataset = attr_dataset.dropna(subset=[attr])
 
             attr_dataset = attr_dataset.sort_values(by=[attr])
             attr_dataset = attr_dataset.to_numpy()
@@ -38,7 +39,7 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             for c in cutoff_values:
                 thresholded_c_attr_vals = []
                 for value in dataset[attr]:
-                    if (missing is not None) and float(missing) == value:
+                    if np.isnan(value):
                         thresholded_c_attr_vals.append(missing)
                     elif value < c:
                         thresholded_c_attr_vals.append("true")
