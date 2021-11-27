@@ -8,6 +8,7 @@ class DecisionTreeNode:
         self.node_attr = None
         self.node_attr_val = None
         self.classification = None
+        self.subset_target_class = None
         self.children = []
         self.parent = None
         self.depth = 0
@@ -15,6 +16,30 @@ class DecisionTreeNode:
     def set_parent(self, parent):
         self.parent = parent
         self.depth = parent.depth + 1
+
+    def remove_child(self, node):
+        self.children = [c for c in self.children if (c.node_attr != node.node_attr or
+                                                      c.node_attr_val != node.node_attr_val)]
+
+    def traverse_subtree(self):
+        yield self
+
+        for c in self.children:
+            yield from c.traverse_subtree()
+
+
+def _prune_subtree(node):
+    leaf = DecisionTreeNode()
+    leaf.set_parent(node.parent)
+    leaf.node_attr = node.node_attr
+    leaf.node_attr_val = node.node_attr_val
+    leaf.subset_target_class = node.subset_target_class
+    leaf.classification = node.subset_target_class
+
+    node.parent.remove_child(node)
+    node.parent.children.append(leaf)
+
+    return leaf
 
 
 class DecisionTree:
@@ -43,6 +68,7 @@ class DecisionTree:
             root.classification = most_common_val
             return root
 
+        root.subset_target_class = most_common_val
         root.split_attr = Utilities.best_attribute(dataset, attributes_dict, target)
 
         most_common_split_val = None
@@ -67,6 +93,7 @@ class DecisionTree:
                 child.node_attr = root.split_attr
                 child.node_attr_val = value
                 child.classification = most_common_val
+                child.subset_target_class = most_common_val
             else:
                 modified_attr_dict = copy.deepcopy(attributes_dict)
                 modified_attr_dict.pop(root.split_attr)
@@ -112,3 +139,26 @@ class DecisionTree:
                     n_positives = n_positives + 1
 
             return n_positives / n_test_samples
+
+    def prune_tree(self, testing_set):
+        best_prune_node = None
+        max_training_p = self.benchmark(testing_set)
+        i = 0
+        for node in self.root.traverse_subtree():
+            i = i + 1
+            if node.parent is not None and len(node.children) != 0:
+                leaf = _prune_subtree(node)
+
+                b = self.benchmark(testing_set)
+                if max_training_p <= b:
+                    max_training_p = b
+                    best_prune_node = node
+
+                node.parent.remove_child(leaf)
+                node.parent.children.append(node)
+
+        if best_prune_node is not None:
+            _prune_subtree(best_prune_node)
+            return self.prune_tree(testing_set)
+        else:
+            return max_training_p

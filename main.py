@@ -27,8 +27,13 @@ if __name__ == "__main__":
             if attr != args["target"]:
                 train_non_missing = train_non_missing.loc[train_non_missing[attr] != args["missing"]]
 
-        print("Testing benchmark: " + str(decisionTree.benchmark(test)))
-        print("Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
+        print("Pre-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
+        print("Pre-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
+
+        decisionTree.prune_tree(test)
+
+        print("Post-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
+        print("Post-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
     except ValueError as ve:
         print(ve)
         print("Exiting...")
