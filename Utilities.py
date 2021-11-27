@@ -70,12 +70,11 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             if non_missing.shape[0] < n_test_samples:
                 raise ValueError("Not enough samples without missing data to generate training set of specified size.")
             else:
-                # remove random_state once debugging is over
-                test = non_missing.sample(frac=(n_test_samples / non_missing.shape[0]), random_state=0)
+                test = non_missing.sample(frac=(n_test_samples / non_missing.shape[0]))
                 train = dataset.drop(test.index)
                 train = train.loc[train[target] != missing]
         else:
-            train = dataset.sample(frac=train_frac, random_state=0)  # remove random_state once debugging is over
+            train = dataset.sample(frac=train_frac)
             test = dataset.drop(train.index)
     else:
         raise ValueError("Fraction split is not in the range 0 < f <= 1 as required.")
