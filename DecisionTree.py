@@ -81,7 +81,7 @@ class DecisionTree:
             elif value == self.missing:
                 has_missing = True
 
-        if has_missing:
+        if has_missing and most_common_split_val is not None:
             self.dataset.loc[self.dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
 
         for value in attributes_dict[root.split_attr][0]:
@@ -108,6 +108,7 @@ class DecisionTree:
         return root
 
     def predict(self, predict_attr_dict):
+        x = list(predict_attr_dict.items())
         for pred_attr, value in predict_attr_dict.items():
             if pred_attr in self.attributes_dict:
                 if value not in self.attributes_dict[pred_attr][0]:

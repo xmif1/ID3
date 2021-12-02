@@ -3,6 +3,15 @@ import numpy as np
 
 
 def load_dataset(data_file, header_file, continuous_file, target, missing, train_frac):
+    """
+    :param data_file: 
+    :param header_file:
+    :param continuous_file:
+    :param target:
+    :param missing:
+    :param train_frac:
+    :return:
+    """
     dataset = pd.read_csv(data_file, header=None)
 
     with open(header_file, "r") as header_file_stream:
