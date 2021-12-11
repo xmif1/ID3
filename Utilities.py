@@ -1,69 +1,91 @@
 import pandas as pd
 import numpy as np
 
-
+"""
+Convenience function for loading a data set from a CSV file into a Panda DataFrame, and preparing it for use with a 
+decision tree while also extracting meta-data about the data set. In particular, the function is responsible for:
+    1.  Splitting the data in training and test subsets, such that the test set has no missing data (i.e. we can carry
+        out predictions on it)
+    2.  Determining a threshold value with which continuous valued attributes are discretised, and reflecting that
+        discretisation in the imported dataset
+    3.  Generates a dictionary with an entry associated with each attribute; the values stored are a list L of size 2:
+            a. L[0] returns a list of all the categorical values the attribute takes
+            b. L[1] returns None if the attribute is categorical, or else returns the threshold value with which the
+               continuous attribute was discretised.
+"""
 def load_dataset(data_file, header_file, continuous_file, target, missing, train_frac):
-    """
-    :param data_file: 
-    :param header_file:
-    :param continuous_file:
-    :param target:
-    :param missing:
-    :param train_frac:
-    :return:
-    """
-    dataset = pd.read_csv(data_file, header=None)
+    dataset = pd.read_csv(data_file, header=None)  # Load data from CSV file
 
-    with open(header_file, "r") as header_file_stream:
+    with open(header_file, "r") as header_file_stream:  # Add column names to DataFrame from attributes header file
         dataset.columns = header_file_stream.readline().rstrip().split(",")
 
-    continuous_attr = []
-    continuous_attr_thresholds = {}
-    if continuous_file is not None:
+    continuous_attr = []  # List storing all the continuous valued attributes
+    continuous_attr_thresholds = {}  # List storing the threshold value with which each continuous attribute is discretised
+    if continuous_file is not None: # If continuous attributes specified...
+        # Populate continuous_attr with the specified attributes
         with open(continuous_file, "r") as continuous_file_stream:
             continuous_attr = continuous_file_stream.readline().rstrip().split(",")
 
+        # For each of the specified continuous attributes, determine the best threshold value (the one which maximises
+        # information gain) and discretise using that value.
         for attr in continuous_attr:
-            if attr == target:
+            if attr == target:  # In case that target is specified as continuous, return error.
                 raise ValueError("Target attribute cannot be continuous.")
 
+            # Since continuous data is real valued and missing data can be represented using any alphanumeric string,
+            # before we represent the attribute values as a float type we must convert the missing value to np.NaN, as
+            # otherwise the conversion cannot be done if say that missing data is represented by "?".
             dataset.loc[dataset[attr] == missing, attr] = np.NaN
             dataset[attr] = dataset[attr].astype(float)
 
+            # Construct a subset consisting solely of the chosen continuous attribute and the target attribute, without
+            # any missing data.
             attr_dataset = dataset[[attr, target]]
             if missing is not None:
                 attr_dataset = attr_dataset.dropna(subset=[attr])
 
+            # Then sort by the continuous attribute and convert to a Numpy array.
             attr_dataset = attr_dataset.sort_values(by=[attr])
             attr_dataset = attr_dataset.to_numpy()
 
+            # It is known that, for a sorted dataset as constructed above, the information gain is maximised at some
+            # between changes in the target attribute values. Hence we find all such points of inflection, and calculate
+            # the average value of the continuous valued attribute at which these inflections in the target occur.
             inflection_points = np.where(attr_dataset[:, 1][:-1] != attr_dataset[:, 1][1:])[0]
             cutoff_values = [(attr_dataset[:, 0][i] + attr_dataset[:, 0][i+1]) / 2 for i in inflection_points]
 
-            dataset_entropy = entropy(dataset, target)
-            max_information_gain = 0
-            thresholded_attr_vals = []
-            threshold = 0
+            dataset_entropy = entropy(dataset, target)  # Calculate the entropy of the entire dataset
+            max_information_gain = 0                    # Will store the maximum information gain at the cutoff points
+            thresholded_attr_vals = []                  # Will store the discretised continuous attribute column
+            threshold = 0                               # Will store the chosen threshold by which the continuous
+                                                            # attribute is discretised
 
+            # For every possible threshold value...
             for c in cutoff_values:
+                # Discretise the data
                 thresholded_c_attr_vals = []
                 for value in dataset[attr]:
-                    if np.isnan(value):
+                    if np.isnan(value):  # if NaN, replace with the missing simple
                         thresholded_c_attr_vals.append(missing)
-                    elif value < c:
+                    elif value < c:  # if less than the threshold c, replace with "true"
                         thresholded_c_attr_vals.append("true")
-                    else:
+                    else:  # if greater than the threshold c, replace with "false"
                         thresholded_c_attr_vals.append("false")
 
+                # Copy the original dataset, substitute the disretised continuous attribute and calculate the associated
+                # information gain.
                 subset = dataset.copy()
                 subset[attr] = thresholded_c_attr_vals
                 c_information_gain = information_gain(subset, dataset_entropy, target, attr)
-                
+
+                # If the information gain associated with the threshold is greater than the information gain associated
+                # with any of the previously tested threshold values, then update accordingly.
                 if max_information_gain <= c_information_gain:
                     threshold = c
                     max_information_gain = c_information_gain
                     thresholded_attr_vals = thresholded_c_attr_vals
 
+            # Discretise the continuous dataset using the threshold greedily chosen to maximise the information gain
             dataset[attr] = thresholded_attr_vals
             continuous_attr_thresholds[attr] = threshold
 

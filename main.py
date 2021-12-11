@@ -17,21 +17,29 @@ args = vars(ap.parse_args())
 
 if __name__ == "__main__":
     try:
+        # Load dataset and prepare it into training and testing subsets, along with any missing data manipulation and
+        # continuous attribute discretisation. Also prepare dictionary of attributes and their values.
         train, test, attributes_dict = Utilities.load_dataset(args["data"], args["header"], args["continuous"],
                                                               args["target"], args["missing"], args["fraction_split"])
 
+        # Construct a decision tree using the ID3 algorithm
         decisionTree = DecisionTree(train, attributes_dict, args["target"], args["missing"])
+
+        # Filter out any training data with missing values, for the purposes of prediction benchmarking
         train_non_missing = decisionTree.dataset.loc[decisionTree.dataset[args["target"]] != args["missing"]]
 
         for attr in train_non_missing.columns:
             if attr != args["target"]:
                 train_non_missing = train_non_missing.loc[train_non_missing[attr] != args["missing"]]
 
+        # Benchmark the decision tree on the training and test sets, before any pruning for over--fitting minimisation
         print("Pre-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
         print("Pre-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
 
+        # Prune the decision tree to minimise over--fitting
         decisionTree.prune_tree(test)
 
+        # Benchmark the decision tree on the training and test sets, after pruning for over--fitting minimisation
         print("Post-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
         print("Post-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
     except ValueError as ve:

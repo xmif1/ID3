@@ -1,2 +1,2 @@
 -D ./Examples/credit-screening.data -H ./Examples/credit-screening.header -C ./Examples/credit-screening.continuous -t A16 -f 0.8 -m ?
--D ./Examples/letter-recognition.data -H ./Examples/letter-recognition.header -t letter
+-D ./Examples/tic-tac-toe.data -H ./Examples/tic-tac-toe.header -t class

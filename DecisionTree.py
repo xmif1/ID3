@@ -1,30 +1,39 @@
 import Utilities
 import copy
 
-
+"""
+Data structure representing a node in a decision tree; maintains a number of attributes as well as provides a number of
+convenience function.
+"""
 class DecisionTreeNode:
     def __init__(self):
-        self.split_attr = None
-        self.node_attr = None
-        self.node_attr_val = None
-        self.classification = None
-        self.subset_target_class = None
-        self.children = []
-        self.parent = None
-        self.depth = 0
+        self.split_attr = None              # Attribute by which data subset is split at this node
+        self.node_attr = None               # Attribute associated with this node
+        self.node_attr_val = None           # Categorical value of node_attr associated with this node
+        self.classification = None          # Categorical value of the target attribute associated with this node
+        self.subset_target_class = None     # Most common categorical value of the target attribute associated with the
+                                                # data subset at this node
+        self.children = []                  # Pointers to branches associated with the categorical values of split_attr
+        self.parent = None                  # Reference to the parent node (except for the root)
+        self.depth = 0                      # Maintains the depth of the node from a root
 
+    # Sets the parent reference while updating the height
     def set_parent(self, parent):
         self.parent = parent
         self.depth = parent.depth + 1
 
+    # Removes a child node based on matches on the node_attr and node_attr_val values (which in a correct decision tree
+    # constructed using ID3 should be unique).
     def remove_child(self, node):
         self.children = [c for c in self.children if (c.node_attr != node.node_attr or
                                                       c.node_attr_val != node.node_attr_val)]
 
+    # Returns a Python generator, using which we can visit all the nodes of the subtree rooted at the node; to an extent
+    # one can consider this as a 'recursive iterator' across the tree structure.
     def traverse_subtree(self):
-        yield self
+        yield self  # visit self
 
-        for c in self.children:
+        for c in self.children:  # the visit the nodes in each subtree rooted at a child node
             yield from c.traverse_subtree()
 
 
