@@ -29,12 +29,12 @@ class DecisionTreeNode:
                                                       c.node_attr_val != node.node_attr_val)]
 
     # Returns a Python generator, using which we can visit all the nodes of the subtree rooted at the node; to an extent
-    # one can consider this as a 'recursive iterator' across the tree structure.
+    # one can consider this as a 'bottom-up recursive iterator' across the tree structure.
     def traverse_subtree(self):
-        yield self  # visit self
-
-        for c in self.children:  # the visit the nodes in each subtree rooted at a child node
+        for c in self.children:  # visit the nodes in each subtree rooted at a child node
             yield from c.traverse_subtree()
+
+        yield self  # visit self
 
 
 def _prune_subtree(node):
@@ -57,10 +57,11 @@ class DecisionTree:
         self.target = target
         self.missing = missing
         self.attributes_dict = attributes_dict
-        self.root = self._id3(dataset, attributes_dict, target)
 
-    def _id3(self, dataset, attributes_dict, target):
-        root = DecisionTreeNode()
+        self.root = DecisionTreeNode()
+        self.root = self._id3(self.root, dataset, attributes_dict, target)
+
+    def _id3(self, root, dataset, attributes_dict, target):
 
         most_common_val = None
         max_count = 0
@@ -83,13 +84,16 @@ class DecisionTree:
         most_common_split_val = None
         max_count = 0
         has_missing = False
+
+        # find the most common occurring non--missing value for the splitting attribute
         for value, count in dataset[root.split_attr].value_counts().items():
-            if value != self.missing and max_count <= count:
+            if value != self.missing and max_count <= count:  # if value exceeds current known maximum, select it instead
                 max_count = count
                 most_common_split_val = value
-            elif value == self.missing:
+            elif value == self.missing:  # else if value is missing, set the has_missing flag to True
                 has_missing = True
 
+        # if has_missing is True and a non-missing common value is found, re-label missing data with most_common_split_val
         if has_missing and most_common_split_val is not None:
             self.dataset.loc[self.dataset[root.split_attr] == self.missing, root.split_attr] = most_common_split_val
 
@@ -107,17 +111,18 @@ class DecisionTree:
                 modified_attr_dict = copy.deepcopy(attributes_dict)
                 modified_attr_dict.pop(root.split_attr)
 
-                child = self._id3(subset, modified_attr_dict, target)
+                child = DecisionTreeNode()
                 child.set_parent(root)
                 child.node_attr = root.split_attr
                 child.node_attr_val = value
+
+                child = self._id3(child, subset, modified_attr_dict, target)
 
             root.children.append(child)
 
         return root
 
     def predict(self, predict_attr_dict):
-        x = list(predict_attr_dict.items())
         for pred_attr, value in predict_attr_dict.items():
             if pred_attr in self.attributes_dict:
                 if value not in self.attributes_dict[pred_attr][0]:
@@ -151,24 +156,17 @@ class DecisionTree:
             return n_positives / n_test_samples
 
     def prune_tree(self, testing_set):
-        best_prune_node = None
-        max_training_p = self.benchmark(testing_set)
-        i = 0
+        prev_benchmark = self.benchmark(testing_set)
+
         for node in self.root.traverse_subtree():
-            i = i + 1
             if node.parent is not None and len(node.children) != 0:
                 leaf = _prune_subtree(node)
 
-                b = self.benchmark(testing_set)
-                if max_training_p <= b:
-                    max_training_p = b
-                    best_prune_node = node
+                curr_benchmark = self.benchmark(testing_set)
+                if prev_benchmark <= curr_benchmark:
+                    prev_benchmark = curr_benchmark
+                else:
+                    node.parent.remove_child(leaf)
+                    node.parent.children.append(node)
 
-                node.parent.remove_child(leaf)
-                node.parent.children.append(node)
-
-        if best_prune_node is not None:
-            _prune_subtree(best_prune_node)
-            return self.prune_tree(testing_set)
-        else:
-            return max_training_p
+        return prev_benchmark

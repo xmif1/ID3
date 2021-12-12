@@ -20,12 +20,17 @@ if __name__ == "__main__":
     pre_pruning_train = []
     post_pruning_test = []
     post_pruning_train = []
+    pre_pruning_height = []
+    post_pruning_height = []
 
-    for f in range(1, 11):
+    for f in range(1, 8):
         frac = f / 10.0
         try:
             train, test, attributes_dict = Utilities.load_dataset(args["data"], args["header"], args["continuous"],
                                                                   args["target"], args["missing"], frac)
+
+            pruning_test_set = test.sample(frac=(1/3))
+            benchmark_test_set = test.drop(pruning_test_set.index)
 
             decisionTree = DecisionTree(train, attributes_dict, args["target"], args["missing"])
             train_non_missing = decisionTree.dataset.loc[decisionTree.dataset[args["target"]] != args["missing"]]
@@ -34,24 +39,36 @@ if __name__ == "__main__":
                 if attr != args["target"]:
                     train_non_missing = train_non_missing.loc[train_non_missing[attr] != args["missing"]]
 
-            pre_pruning_test.append([frac, decisionTree.benchmark(test)])
+            pre_pruning_test.append([frac, decisionTree.benchmark(benchmark_test_set)])
             pre_pruning_train.append([frac, decisionTree.benchmark(train_non_missing)])
+            pre_pruning_height.append([frac, max([node.depth for node in decisionTree.root.traverse_subtree()])])
 
-            decisionTree.prune_tree(test)
+            decisionTree.prune_tree(pruning_test_set)
 
-            post_pruning_test.append([frac, decisionTree.benchmark(test)])
+            post_pruning_test.append([frac, decisionTree.benchmark(benchmark_test_set)])
             post_pruning_train.append([frac, decisionTree.benchmark(train_non_missing)])
+            post_pruning_height.append([frac, max([node.depth for node in decisionTree.root.traverse_subtree()])])
         except ValueError as ve:
             print(ve)
             print("Exiting...")
             exit(1)
 
-    plt.title("Overfitting Analysis Pre and Post Pruning")
+    fig1, (ax1) = plt.subplots(1, 1)
+    fig1.suptitle("Overfitting Analysis Pre and Post Pruning")
 
-    plt.plot([x[0] for x in pre_pruning_test], [x[1] for x in pre_pruning_test], label="Pre-pruning Test")
-    plt.plot([x[0] for x in pre_pruning_train], [x[1] for x in pre_pruning_train], label="Pre-pruning Train")
-    plt.plot([x[0] for x in post_pruning_test], [x[1] for x in post_pruning_test], label="Post-pruning Test")
-    plt.plot([x[0] for x in post_pruning_train], [x[1] for x in post_pruning_train], label="Post-pruning Train")
+    ax1.plot([x[0] for x in pre_pruning_test], [x[1] for x in pre_pruning_test], label="Pre-pruning Test")
+    ax1.plot([x[0] for x in pre_pruning_train], [x[1] for x in pre_pruning_train], label="Pre-pruning Train")
+    ax1.plot([x[0] for x in post_pruning_test], [x[1] for x in post_pruning_test], label="Post-pruning Test")
+    ax1.plot([x[0] for x in post_pruning_train], [x[1] for x in post_pruning_train], label="Post-pruning Train")
 
-    plt.legend()
+    ax1.legend()
+
+    fig2, (ax2) = plt.subplots(1, 1)
+    fig2.suptitle("Decision Tree Height Analysis Pre and Post Pruning")
+
+    ax2.plot([x[0] for x in pre_pruning_height], [x[1] for x in pre_pruning_height], label="Pre-pruning height")
+    ax2.plot([x[0] for x in post_pruning_height], [x[1] for x in post_pruning_height], label="Post-pruning height")
+
+    ax2.legend()
+
     plt.show()

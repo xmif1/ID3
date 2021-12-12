@@ -48,7 +48,7 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             attr_dataset = attr_dataset.sort_values(by=[attr])
             attr_dataset = attr_dataset.to_numpy()
 
-            # It is known that, for a sorted dataset as constructed above, the information gain is maximised at some
+            # It is known that, for a sorted dataset as constructed above, the information gain is maximised at some pt
             # between changes in the target attribute values. Hence we find all such points of inflection, and calculate
             # the average value of the continuous valued attribute at which these inflections in the target occur.
             inflection_points = np.where(attr_dataset[:, 1][:-1] != attr_dataset[:, 1][1:])[0]
@@ -90,21 +90,25 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             continuous_attr_thresholds[attr] = threshold
 
     if 0 < train_frac <= 1:
-        if missing is not None and train_frac != 1:
-            n_test_samples = dataset.shape[0] * (1 - train_frac)
-            non_missing = dataset.loc[dataset[target] != missing]
+        if missing is not None:  # if missing label is specified
+            n_test_samples = dataset.shape[0] * (1 - train_frac)    # number of test samples desired
 
-            for attr in non_missing.columns:
+            # filter out missing data based on passed label, column by column starting with the target...
+            non_missing = dataset.loc[dataset[target] != missing]
+            for attr in non_missing.columns:    # ...and then filtering out attribute by attribute
                 if attr != target:
                     non_missing = non_missing.loc[non_missing[attr] != missing]
 
-            if non_missing.shape[0] < n_test_samples:
+            if non_missing.shape[0] < n_test_samples:  # if not enough filtered data to generate testing set of the
+                                                       # desired size, throw an exception
                 raise ValueError("Not enough samples without missing data to generate training set of specified size.")
             else:
+                # otherwise split the data set, such that the test set has no missing data, but the training set does
+                # since this can be dealt with later on using the ID3 algorithm
                 test = non_missing.sample(frac=(n_test_samples / non_missing.shape[0]))
                 train = dataset.drop(test.index)
-                train = train.loc[train[target] != missing]
-        else:
+                train = train.loc[train[target] != missing]  # note however that target cannot have missing data
+        else:  # else if no missing label specified, simply split using the given fraction
             train = dataset.sample(frac=train_frac)
             test = dataset.drop(train.index)
     else:
