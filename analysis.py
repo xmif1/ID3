@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 
-from DecisionTree import DecisionTree
-import Utilities
+from Core.DecisionTree import DecisionTree
+from Core import Utilities
 
 import argparse
 import math

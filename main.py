@@ -1,5 +1,5 @@
-from DecisionTree import DecisionTree, DecisionTreeNode
-import Utilities
+from Core.DecisionTree import DecisionTree
+from Core import Utilities
 
 import argparse
 

@@ -1,0 +1,20 @@
+@misc{nursery,
+  author       = {Rajkovic, Vladislav},
+  title        = {{Nursery}},
+  year         = {1997},
+  howpublished = {UCI Machine Learning Repository}
+}
+
+@misc{credit_approval,
+  author       = {Quinlan},
+  title        = {{Credit Approval}},
+  year         = {1987},
+  howpublished = {UCI Machine Learning Repository}
+}
+
+@misc{tic-tac-toe,
+  author       = {Aha, David},
+  title        = {{Tic-Tac-Toe Endgame}},
+  year         = {1991},
+  howpublished = {UCI Machine Learning Repository}
+}
