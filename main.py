@@ -1,4 +1,4 @@
-from DecisionTree import DecisionTree
+from DecisionTree import DecisionTree, DecisionTreeNode
 import Utilities
 
 import argparse
@@ -21,6 +21,8 @@ if __name__ == "__main__":
         # continuous attribute discretisation. Also prepare dictionary of attributes and their values.
         train, test, attributes_dict = Utilities.load_dataset(args["data"], args["header"], args["continuous"],
                                                               args["target"], args["missing"], args["fraction_split"])
+        pruning_test_set = test.sample(frac=(2/3))
+        benchmark_test_set = test.drop(pruning_test_set.index)
 
         # Construct a decision tree using the ID3 algorithm
         decisionTree = DecisionTree(train, attributes_dict, args["target"], args["missing"])
@@ -33,15 +35,26 @@ if __name__ == "__main__":
                 train_non_missing = train_non_missing.loc[train_non_missing[attr] != args["missing"]]
 
         # Benchmark the decision tree on the training and test sets, before any pruning for over--fitting minimisation
-        print("Pre-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
+        print("Pre-pruning Testing benchmark: " + str(decisionTree.benchmark(benchmark_test_set)))
         print("Pre-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
 
+        n_node_pre_pruning = 0
+        for _ in decisionTree.root.traverse_subtree():
+            n_node_pre_pruning = n_node_pre_pruning + 1
+        print("Pre-pruning number of nodes: " + str(n_node_pre_pruning))
+
         # Prune the decision tree to minimise over--fitting
-        decisionTree.prune_tree(test)
+        decisionTree.prune_tree(pruning_test_set)
 
         # Benchmark the decision tree on the training and test sets, after pruning for over--fitting minimisation
-        print("Post-pruning Testing benchmark: " + str(decisionTree.benchmark(test)))
+        print("Post-pruning Testing benchmark: " + str(decisionTree.benchmark(benchmark_test_set)))
         print("Post-pruning Training benchmark: " + str(decisionTree.benchmark(train_non_missing)))
+
+        n_node_post_pruning = 0
+        for _ in decisionTree.root.traverse_subtree():
+            n_node_post_pruning = n_node_post_pruning + 1
+        print("Post-pruning number of nodes: " + str(n_node_post_pruning))
+        print("% change in number of nodes: " + str((1 - (n_node_post_pruning / n_node_pre_pruning)) * 100) + "%")
     except ValueError as ve:
         print(ve)
         print("Exiting...")

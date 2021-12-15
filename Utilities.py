@@ -52,7 +52,7 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
             # between changes in the target attribute values. Hence we find all such points of inflection, and calculate
             # the average value of the continuous valued attribute at which these inflections in the target occur.
             inflection_points = np.where(attr_dataset[:, 1][:-1] != attr_dataset[:, 1][1:])[0]
-            cutoff_values = [(attr_dataset[:, 0][i] + attr_dataset[:, 0][i+1]) / 2 for i in inflection_points]
+            threshold_values = [(attr_dataset[:, 0][i] + attr_dataset[:, 0][i+1]) / 2 for i in inflection_points]
 
             dataset_entropy = entropy(dataset, target)  # Calculate the entropy of the entire dataset
             max_information_gain = 0                    # Will store the maximum information gain at the cutoff points
@@ -61,13 +61,13 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
                                                             # attribute is discretised
 
             # For every possible threshold value...
-            for c in cutoff_values:
+            for t in threshold_values:
                 # Discretise the data
                 thresholded_c_attr_vals = []
                 for value in dataset[attr]:
                     if np.isnan(value):  # if NaN, replace with the missing simple
                         thresholded_c_attr_vals.append(missing)
-                    elif value < c:  # if less than the threshold c, replace with "true"
+                    elif value < t:  # if less than the threshold c, replace with "true"
                         thresholded_c_attr_vals.append("true")
                     else:  # if greater than the threshold c, replace with "false"
                         thresholded_c_attr_vals.append("false")
@@ -81,7 +81,7 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
                 # If the information gain associated with the threshold is greater than the information gain associated
                 # with any of the previously tested threshold values, then update accordingly.
                 if max_information_gain <= c_information_gain:
-                    threshold = c
+                    threshold = t
                     max_information_gain = c_information_gain
                     thresholded_attr_vals = thresholded_c_attr_vals
 

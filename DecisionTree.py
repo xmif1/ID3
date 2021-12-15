@@ -144,7 +144,7 @@ class DecisionTree:
         n_positives = 0
 
         if n_test_samples == 0:
-            return -1
+            return 0
         else:
             for _, predict_attr_dict in dataset.iterrows():
                 target_value = predict_attr_dict[self.target]
@@ -155,18 +155,22 @@ class DecisionTree:
 
             return n_positives / n_test_samples
 
-    def prune_tree(self, testing_set):
-        prev_benchmark = self.benchmark(testing_set)
+    def prune_tree(self, pruning_test_set):
+        prev_benchmark = self.benchmark(pruning_test_set)  # initial benchmark before pruning
 
+        # traverse_subtree() returns an iterator which visits all the nodes in a bottom up manner
         for node in self.root.traverse_subtree():
+            # if node is not the root and not a leaf node, test for pruning
             if node.parent is not None and len(node.children) != 0:
+                # _prune_subtree(node) replaces the node with a leaf (which is returned) whose class is the is the most
+                # common class amongst the leafs of the sub--tree rooted at node
                 leaf = _prune_subtree(node)
 
-                curr_benchmark = self.benchmark(testing_set)
-                if prev_benchmark <= curr_benchmark:
+                curr_benchmark = self.benchmark(pruning_test_set)  # benchmark the pruned decision tree
+                if prev_benchmark < curr_benchmark:  # if pruning improves the benchmark, keep the pruned tree
                     prev_benchmark = curr_benchmark
-                else:
+                else:  # otherwise restore the node
                     node.parent.remove_child(leaf)
                     node.parent.children.append(node)
 
-        return prev_benchmark
+        return prev_benchmark  # return the new benchmark after pruning
