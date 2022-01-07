@@ -114,15 +114,18 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
     else:
         raise ValueError("Fraction split is not in the range 0 < f <= 1 as required.")
 
+    # Construct attributes dict as described above
     attributes_dict = {}
-    target_found = False
+    target_found = False  # Verify that target column actually is in the dataset
     for attribute in dataset.columns:
-        if attribute != target:
+        if attribute != target:  # For each attribute which is not the target...
+            # Find all the distinct values (incl. missing) that the attribute can take
             values = []
             for v in dataset[attribute].unique():
                 if v != missing:
                     values.append(v)
 
+            # If attribute is continuous, maintain the thresholding value...
             if attribute in continuous_attr:
                 attributes_dict[attribute] = [values, continuous_attr_thresholds[attribute]]
             else:
@@ -130,40 +133,58 @@ def load_dataset(data_file, header_file, continuous_file, target, missing, train
         else:
             target_found = True
 
-    if not target_found:
+    if not target_found:  # If target attribute not in dataset, throw error...
         raise ValueError("Specified target attribute is not in the header file.")
 
-    return train, test, attributes_dict
+    return train, test, attributes_dict  # return prepared training and test sets, along with the attributes dictionary
 
 
+# Utility function for computing the entropy of a dataset based on the target column specified.
 def entropy(dataset, target):
+    # Count the number of occurrences of each value the target attribute takes in the dataset
     counts = [c for _, c in dataset[target].value_counts().items()]
+
+    # Normalise the counts by the size of the size of the dataset, yielding a distribution of how probable each target
+    # value is likely to occur
     probabilities = np.divide(counts, dataset.shape[0])
 
+    # Compute the entropy, which is - the log2 sum of the probabilities weighted by the probabilities themselves
     return -1 * np.sum([p * log2_p for p, log2_p in zip(probabilities, np.log2(probabilities))])
 
 
+# Utility function that computes the information gain for a given attribute
 def information_gain(dataset, dataset_entropy, target, attribute):
-    conditional_entropy = 0
-    for value in dataset[attribute].unique():
+    # InformationGain(Dataset, Attr) = Entropy(Dataset) - ConditionalEntropy(Dataset | Attr)
+
+    conditional_entropy = 0  # Initial value for the conditional entropy...
+
+    for value in dataset[attribute].unique():  # For each value attribute takes in the dataset...
+        # Filter the dataset to contain only those entries where attribute == value
         subset = dataset.loc[dataset[attribute] == value]
+
+        # Aggregate the entropy of the filtered dataset weighted by the size of the filtered dataset
         conditional_entropy = conditional_entropy + (subset.shape[0] * entropy(subset, target))
 
+    # Normalise by the size of the original dataset
     conditional_entropy = conditional_entropy / dataset.shape[0]
 
-    return dataset_entropy - conditional_entropy
+    return dataset_entropy - conditional_entropy  # Compute and return the information gain
 
 
+# Utility function that greedily find the attribute which maximises the information gain.
 def best_attribute(dataset, attributes_dict, target):
-    dataset_entropy = entropy(dataset, target)
-    max_information_gain = 0
-    max_ig_attr = None
+    dataset_entropy = entropy(dataset, target)  # Find the entropy of the entire dataset.
+    max_information_gain = 0  # Current maximum information gain with respect to all the attributes in attributes_dict
+    max_ig_attr = None  # Attribute corresponding to the current maximum information gain
 
-    for attr in attributes_dict:
-        if attr != target:
+    for attr in attributes_dict:  # For each attribute in attributes_dict...
+        if attr != target:  # ...which is not the target...
+            # Compute the information gain
             ig = information_gain(dataset, dataset_entropy, target, attr)
+
+            # If the information gain computed is greater than the globally found information gain, adjust...
             if max_information_gain <= ig:
                 max_information_gain = ig
                 max_ig_attr = attr
 
-    return max_ig_attr
+    return max_ig_attr  # Return the attribute that maximises the information gain
